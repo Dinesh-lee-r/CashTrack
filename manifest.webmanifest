@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "CashTrack \u2014 by Dynex",
+  "short_name": "CashTrack",
+  "description": "Private offline-first expense tracker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c1217",
+  "theme_color": "#101820",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
