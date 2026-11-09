@@ -55,7 +55,25 @@ $('restore').onchange=async e=>{try{let d=JSON.parse(await e.target.files[0].tex
 $('clear').onclick=async()=>{if(!confirm('Delete all local transactions and settings? Export a backup first if needed.'))return;if(!confirm('Final confirmation: permanently erase CashTrack data on this browser?'))return;let db=await dbp;await new Promise((res,rej)=>{let t=db.transaction(['tx','prefs'],'readwrite');t.objectStore('tx').clear();t.objectStore('prefs').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});state.tx=[];state.settings={theme:0,mode:'dark',currency:'INR',weekStart:1,custom:[],prefs:{},budgets:{overall:0,categories:{}}};await savePrefs();render();toast('All local data deleted.')};
 $('install').onclick=async()=>{if(state.install){state.install.prompt();let r=await state.install.userChoice;state.install=null;toast(r.outcome==='accepted'?'Install accepted.':'Install dismissed.')}else alert('On Android Chrome, open this HTTPS website, tap ⋮, then Install app or Add to Home screen. Visit online once first.');};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.install=e;$('install').textContent='＋ Install CashTrack'});window.addEventListener('appinstalled',()=>toast('CashTrack installed.'));
-window.addEventListener('resize',()=>{if(state.page==='home')renderHome();if(state.page==='stats')renderStats()});
+let lastChartWidth = 0;
+if ('ResizeObserver' in window) {
+    const chartObserver = new ResizeObserver(entries => {
+        const entry = entries[0];
+        const width = Math.floor(entry.contentRect.width);
+        if (!width || width === lastChartWidth) return;
+        lastChartWidth = width;
+        requestAnimationFrame(() => {
+            if (state.page === 'home') drawHomeCategoryChart($('chart'), state.period, dateObj(state.homeDate || today()));
+            if (state.page === 'stats') renderStats();
+        });
+    });
+    window.addEventListener('load', () => {
+        const homeCanvas = $('chart');
+        const statsCanvas = $('statsChart');
+        if (homeCanvas) chartObserver.observe(homeCanvas.parentElement);
+        if (statsCanvas) chartObserver.observe(statsCanvas.parentElement);
+    }, { once: true });
+}
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 async function boot(){try{state.tx=await req('tx','getAll');let ps=await req('prefs','getAll'),s=ps.find(x=>x.key==='settings');if(s?.value)state.settings={...state.settings,...s.value};state.settings.budgets||={overall:0,categories:{}};state.settings.budgets.categories||={};fillSelects();render()}catch(e){toast('IndexedDB unavailable in this browser.');console.error(e)}}
 
@@ -74,12 +92,12 @@ function drawHomeCategoryChart(canvas, period, anchor) {
 
     const list = expenses(bounds(period, anchor));
     const categories = groupByCategory(list);
-    const card = canvas.closest('.chartCard');
-    const availableWidth = card ? card.clientWidth : canvas.parentElement.clientWidth;
-    const w = Math.max(240, Math.floor(availableWidth - 30));
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(240, Math.floor(rect.width || canvas.parentElement.clientWidth || 300));
     const h = 210;
     const ratio = Math.max(1, window.devicePixelRatio || 1);
 
+    // CSS size remains in CSS pixels; backing-store size is only for sharp drawing.
     canvas.style.display = 'block';
     canvas.style.width = '100%';
     canvas.style.maxWidth = '100%';
@@ -100,7 +118,6 @@ function drawHomeCategoryChart(canvas, period, anchor) {
     );
 
     let groups = [];
-
     if (period === 'day') {
         groups = categories.map(([category, amount]) => ({
             label: category,
@@ -125,16 +142,13 @@ function drawHomeCategoryChart(canvas, period, anchor) {
                     ? dt.toLocaleDateString('en-IN', { weekday: 'short' })
                     : String(dt.getDate());
 
-            const groupTransactions = list.filter(t =>
+            const dayTransactions = list.filter(t =>
                 period === 'year'
                     ? Number(t.date.slice(5, 7)) === i + 1
                     : t.date === iso(dt)
             );
 
-            groups.push({
-                label,
-                parts: groupByCategory(groupTransactions)
-            });
+            groups.push({ label, parts: groupByCategory(dayTransactions) });
         }
     }
 
@@ -183,7 +197,7 @@ function drawHomeCategoryChart(canvas, period, anchor) {
             ctx.font = '10px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            const label = period === 'day' && group.label.length > 8
+            const label = group.label.length > 8
                 ? group.label.slice(0, 7) + '…'
                 : group.label;
             ctx.fillText(label, x + barW / 2, top + plotH + 7);
@@ -216,7 +230,7 @@ function renderHome(){
 }
 function drawPie(canvas,list){
   if(!canvas)return;
-  let entries=groupByCategory(list),total=entries.reduce((s,x)=>s+x[1],0),card=canvas.closest('.chartCard'),w=Math.max(240,Math.floor((card?card.clientWidth:canvas.parentElement.clientWidth)-30)),h=220,ratio=Math.max(1,window.devicePixelRatio||1);
+  let entries=groupByCategory(list),total=entries.reduce((s,x)=>s+x[1],0),w=Math.max(240,Math.floor(canvas.getBoundingClientRect().width||canvas.parentElement.clientWidth||300)),h=220,ratio=Math.max(1,window.devicePixelRatio||1);
   canvas.style.display='block';canvas.style.width='100%';canvas.style.maxWidth='100%';canvas.style.height=h+'px';canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);
   let ctx=canvas.getContext('2d');ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
   state.pieSlices=[];if(!entries.length)return;

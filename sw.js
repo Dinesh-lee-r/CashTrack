@@ -1,46 +1,30 @@
-const CACHE = 'cashtrack-shell-v8';
-
+const CACHE = 'cashtrack-shell-v9';
 const FILES = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './manifest.webmanifest',
-  './icon.svg',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './', './index.html', './styles.css', './app.js',
+  './manifest.webmanifest', './icon.svg',
+  './icons/icon-192.png', './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then(cache => cache.addAll(FILES))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key.startsWith('cashtrack-shell-') && key !== CACHE)
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key.startsWith('cashtrack-shell-') && key !== CACHE)
           .map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
+    )).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  const path = url.pathname;
-  const isAppCode = /\.(html|css|js|webmanifest)$/.test(path) || event.request.mode === 'navigate';
-
-  if (isAppCode) {
+  const codeFile = /\.(html|css|js|webmanifest)$/.test(url.pathname) || event.request.mode === 'navigate';
+  if (codeFile) {
     event.respondWith(
       fetch(event.request).then(response => {
         if (response.ok) {
@@ -48,20 +32,17 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE).then(cache => cache.put(event.request, copy));
         }
         return response;
-      }).catch(() => caches.match(event.request).then(cached =>
-        cached || caches.match('./index.html')
-      ))
+      }).catch(() => caches.match(event.request).then(hit => hit || caches.match('./index.html')))
     );
-    return;
+  } else {
+    event.respondWith(
+      caches.match(event.request).then(hit => hit || fetch(event.request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      }).catch(() => caches.match('./index.html')))
+    );
   }
-
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(event.request, copy));
-      }
-      return response;
-    }).catch(() => caches.match('./index.html')))
-  );
 });

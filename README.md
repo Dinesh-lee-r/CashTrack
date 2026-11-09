@@ -37,9 +37,8 @@ Open the HTTPS URL in Chrome, load it online once, then use **⋮ → Install ap
 Records live in this browser's IndexedDB for this website origin; they are not uploaded. Clearing browser data or storage eviction can remove them. Private browsing may be temporary. Export JSON backups regularly. Data does not sync across devices. External Google Fonts are optional; system fonts work offline. Test airplane mode after the first online load.
 \n\n## Reminder limitation\nEMI reminders use browser notifications and are checked when the app is opened. Reliable scheduled notifications while the app is fully closed require native Android scheduling or a push-notification backend; this static PWA does not guarantee background delivery.\n
 
-## v8 chart and cache corrections
-- Responsive canvas sizing is separated from high-DPI drawing dimensions.
-- Chart canvases are constrained to their cards to prevent horizontal overflow.
-- Day charts group the selected day's expenses by category; week/month/year charts use stacked date/month groups.
-- The service worker uses network-first updates for HTML, CSS, JavaScript and the manifest, with cached fallback when offline.
-- Updating these files does not intentionally clear the app's IndexedDB transaction database.
+## v9 mobile chart correction
+- Chart drawing now measures the canvas's actual CSS width, not the card width minus a guessed padding.
+- Canvas backing-store pixels are separated from its CSS layout dimensions.
+- Removed full-page redraws on every mobile viewport resize; chart redraws only when its container width changes.
+- Service worker cache updated to v9 and app code is refreshed network-first with offline fallback.
