@@ -42,3 +42,11 @@ Records live in this browser's IndexedDB for this website origin; they are not u
 - Canvas backing-store pixels are separated from its CSS layout dimensions.
 - Removed full-page redraws on every mobile viewport resize; chart redraws only when its container width changes.
 - Service worker cache updated to v9 and app code is refreshed network-first with offline fallback.
+
+
+## Final PWA install/cache correction (v10)
+- Service-worker precache contains only files included in this package.
+- The icon link and manifest point to the included PNG app icons.
+- Service-worker cache version is v10.
+- HTML references versioned CSS and JavaScript assets to reduce stale-file issues.
+- Updating these files does not intentionally clear IndexedDB transaction data.

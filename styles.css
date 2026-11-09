@@ -33,3 +33,12 @@ main, .page, .card, .chartCard {
 #statsChart {
     height: 220px !important;
 }
+
+
+/* CashTrack final: responsive chart and mobile overflow safeguards */
+html, body { max-width:100%; overflow-x:hidden; }
+main, .page, .card, .chartCard { min-width:0; max-width:100%; }
+.chartCard { width:100%; overflow:hidden; }
+.chartCard canvas { display:block; width:100% !important; max-width:100% !important; }
+#chart { height:210px !important; }
+#statsChart { height:220px !important; }
