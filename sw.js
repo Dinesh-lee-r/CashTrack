@@ -1,4 +1,4 @@
-const CACHE = 'cashtrack-shell-v10';
+const CACHE = 'cashtrack-shell-v11';
 
 const FILES = [
   './',

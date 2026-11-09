@@ -50,3 +50,11 @@ Records live in this browser's IndexedDB for this website origin; they are not u
 - Service-worker cache version is v10.
 - HTML references versioned CSS and JavaScript assets to reduce stale-file issues.
 - Updating these files does not intentionally clear IndexedDB transaction data.
+
+
+## v11 chart improvements
+- Added a category color legend under the home spending chart, including each category's total for the selected period.
+- Category colors are stable across day, week, month and year views.
+- Monthly chart labels are spaced at five-day intervals to prevent dates 29 and 30 from overlapping; every date's bar remains visible.
+- Rebuilt the 192px and 512px PNG icons from the supplied icon.svg so the manifest and service-worker icon paths exist in this package.
+- Service-worker cache updated to v11.

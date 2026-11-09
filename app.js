@@ -113,9 +113,14 @@ function drawHomeCategoryChart(canvas, period, anchor) {
     const muted = css.getPropertyValue('--muted').trim() || '#899ba1';
     const line = css.getPropertyValue('--line').trim() || '#293740';
 
-    const colors = categories.map((_, i) =>
-        `hsl(${(115 + i * 47) % 360} 65% 52%)`
-    );
+    // A category gets one stable color, so its color does not change by period.
+    const categoryColor = category => {
+        let hash = 0;
+        for (let i = 0; i < category.length; i++) {
+            hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+        }
+        return `hsl(${hash % 360} 68% 54%)`;
+    };
 
     let groups = [];
     if (period === 'day') {
@@ -182,15 +187,18 @@ function drawHomeCategoryChart(canvas, period, anchor) {
         let baseY = top + plotH;
 
         group.parts.forEach(([category, amount]) => {
-            const categoryIndex = categories.findIndex(item => item[0] === category);
             const barHeight = amount / max * plotH;
-            ctx.fillStyle = colors[Math.max(0, categoryIndex)];
+            ctx.fillStyle = categoryColor(category);
             ctx.fillRect(x, baseY - barHeight, barW, barHeight);
             baseY -= barHeight;
         });
 
-        const showLabel = period === 'day' || groups.length <= 12 ||
-            i % Math.ceil(groups.length / 9) === 0 || i === groups.length - 1;
+        // Monthly charts show labels every five days; all bars are still displayed.
+        const showLabel = period === 'month'
+            ? (i === 0 || (i + 1) % 5 === 0 || i === groups.length - 1)
+            : period === 'day'
+                ? (groups.length <= 5 || i % Math.ceil(groups.length / 5) === 0 || i === groups.length - 1)
+                : true;
 
         if (showLabel) {
             ctx.fillStyle = muted;
@@ -209,6 +217,20 @@ function drawHomeCategoryChart(canvas, period, anchor) {
         hint.textContent = period === 'day'
             ? 'Amount (₹) by category'
             : `Amount (₹) by ${period === 'week' ? 'day' : period === 'month' ? 'date' : 'month'} · category segments`;
+    }
+
+    // Explain every chart color and show the total for that category in this period.
+    const legend = $('homeChartLegend');
+    if (legend) {
+        legend.innerHTML = categories.length
+            ? categories.map(([category, amount]) => `
+                <div class="chartLegendItem">
+                    <span class="chartLegendSwatch" style="background:${categoryColor(category)}"></span>
+                    <span class="chartLegendName">${esc(category)}</span>
+                    <strong>${fmt(amount)}</strong>
+                </div>
+            `).join('')
+            : '<span class="muted">No category spending in this period.</span>';
     }
 }
 function renderHome(){
